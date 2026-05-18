@@ -17,7 +17,7 @@ You have access to real-time market data, technical analysis, and AI-powered sto
 Always use the available tools to provide data-driven answers.
 Format numbers nicely and include relevant context.`,
     messages,
-    tools: vectrade.tools,
+    tools: { ...vectrade.tools() },
   });
 
   return result.toDataStreamResponse();
