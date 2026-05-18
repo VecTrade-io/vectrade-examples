@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-python:
+    name: Validate Python Examples
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Syntax check all Python files
+        run: |
+          find python/ use-cases/ templates/python-project/ -name "*.py" | while read f; do
+            echo "Checking $f"
+            python -m py_compile "$f"
+          done
+
+      - name: Check for hardcoded secrets
+        run: |
+          if grep -rn 'vq_live_[a-zA-Z0-9]' python/ use-cases/ templates/; then
+            echo "ERROR: Found hardcoded live API keys!"
+            exit 1
+          fi
+
+  validate-typescript:
+    name: Validate TypeScript Examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check TypeScript examples
+        run: npx tsc --noEmit
+
+      - name: Lint check
+        run: npx eslint .
+
+  validate-shell:
+    name: Validate Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell syntax
+        run: bash -n curl/quickstart.sh
