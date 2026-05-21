@@ -1,1 +1,14 @@
-* @VecTrade-io/sdk-team
+# ─── CODEOWNERS ─────────────────────────────────────────────────────────────
+# Maps file patterns to owners/agents responsible for review.
+
+# ── Default ─────────────────────────────────────────────────────────────────
+*                           @mountek
+
+# ── Python examples (vt-examples-dev) ─────────────────────────────────────
+python/                     @mountek
+
+# ── TypeScript examples ────────────────────────────────────────────────────
+typescript/                 @mountek
+
+# ── cURL examples ──────────────────────────────────────────────────────────
+curl/                       @mountek
