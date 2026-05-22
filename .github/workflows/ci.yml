@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/**]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,16 +13,23 @@ permissions:
 jobs:
   validate-python:
     name: Validate Python Examples
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: ["3.9", "3.12"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: pip install pytest pytest-cov requests
 
       - name: Syntax check all Python files
         run: |
@@ -30,12 +38,8 @@ jobs:
             python -m py_compile "$f"
           done
 
-      - name: Check for hardcoded secrets
-        run: |
-          if grep -rn 'vq_live_[a-zA-Z0-9]' python/ use-cases/ templates/; then
-            echo "ERROR: Found hardcoded live API keys!"
-            exit 1
-          fi
+      - name: Run validation tests
+        run: python -m pytest tests/test_examples.py -v --tb=short
 
   validate-typescript:
     name: Validate TypeScript Examples
@@ -64,3 +68,37 @@ jobs:
 
       - name: Check shell syntax
         run: bash -n curl/quickstart.sh
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          if grep -rn 'vq_live_[a-zA-Z0-9]\{10,\}' python/ use-cases/ templates/ typescript/ curl/; then
+            echo "ERROR: Found hardcoded live API keys!"
+            exit 1
+          fi
+          echo "No hardcoded secrets found"
+
+  live-tests:
+    name: Live API Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: [validate-python, validate-typescript]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pytest requests
+
+      - name: Run live tests
+        env:
+          VECTRADE_API_KEY: ${{ secrets.VECTRADE_API_KEY }}
+        run: python -m pytest tests/test_live.py -v --tb=short
