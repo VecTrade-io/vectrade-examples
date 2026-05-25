@@ -39,7 +39,7 @@ async function productionErrorHandling() {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       console.error(`❌ Auth failed: ${error.message} [${error.errorCode}]`);
-      console.error("   → Check VECTRADE_API_KEY or visit https://app.vectrade.io/keys");
+      console.error("   → Check VECTRADE_API_KEY or visit https://vectrade.io/vtrade/developer");
       process.exit(1);
     }
 

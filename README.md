@@ -67,7 +67,7 @@ cd curl/ && bash quickstart.sh
 
 - **Python** >= 3.9 with `pip`
 - **Node.js** >= 20 with `npm` (for TypeScript examples)
-- **VecTrade API key** — get one at [app.vectrade.io/keys](https://app.vectrade.io/keys)
+- **VecTrade API key** — get one at [vectrade.io/vtrade/developer](https://vectrade.io/vtrade/developer)
 - **[finkit](https://github.com/VecTrade-io/finkit)** (optional, for `portfolio_analysis.py`)
 
 ## Running Examples

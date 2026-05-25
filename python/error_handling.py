@@ -55,7 +55,7 @@ def production_error_handling():
         # API key invalid, expired, or revoked
         print(f"❌ Authentication failed: {e}")
         print(f"   Error code: {e.error_code}")
-        print("   → Check your VECTRADE_API_KEY or create a new key at https://app.vectrade.io/keys")
+        print("   → Check your VECTRADE_API_KEY or create a new key at https://vectrade.io/vtrade/developer")
         sys.exit(1)
 
     except RateLimitError as e:
@@ -77,7 +77,7 @@ def production_error_handling():
     except PaymentRequiredError as e:
         # Feature requires paid plan (e.g., AI analysis on free tier)
         print(f"💳 Payment required: {e}")
-        print("   → Upgrade at https://app.vectrade.io/billing")
+        print("   → Upgrade at https://vectrade.io/vtrade/developer")
 
     except NotFoundError as e:
         # Ticker not found
