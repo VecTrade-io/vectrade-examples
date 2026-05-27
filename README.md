@@ -8,18 +8,48 @@ Runnable examples, templates, and use cases demonstrating [VecTrade](https://vec
 ## Quick Start
 
 ```bash
-# Set your API key
-export VECTRADE_API_KEY=vq_test_...
+# 1. Get your API key at https://vectrade.io/vtrade/developer
+export VECTRADE_API_KEY=vq_your_key_here
 
-# Python
+# 2. Try the cURL quickstart (no SDK needed)
+bash curl/quickstart.sh
+
+# 3. Or use the Python SDK
 cd python/ && pip install vectrade && python quickstart.py
 
-# TypeScript
+# 4. Or use the TypeScript SDK
 cd typescript/ && npm install @vectrade/sdk tsx && npx tsx quickstart.ts
-
-# cURL
-cd curl/ && bash quickstart.sh
 ```
+
+## API Base URL & Authentication
+
+All VecTrade API requests use:
+
+```
+Base URL: https://api.vectrade.io/v1/vq
+Auth Header: X-API-Key: vq_your_key_here
+```
+
+## Available Endpoints (16)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/quotes/{symbol}` | GET | Real-time stock quote |
+| `/quotes/batch?symbols=A,B,C` | GET | Multiple quotes (up to 50) |
+| `/quotes/{symbol}/history?period=5d` | GET | Historical OHLCV data |
+| `/technical/{symbol}` | GET | Technical indicators (RSI, MACD, Bollinger, S/R) |
+| `/fundamentals/{symbol}` | GET | Company fundamentals (market cap, SMAs) |
+| `/fundamentals/{symbol}/statements` | GET | Income, balance sheet, cash flow |
+| `/profile/{symbol}` | GET | Company profile, sector, description |
+| `/news/{symbol}` | GET | Latest news articles |
+| `/sentiment/{symbol}` | GET | Sentiment score & social mentions |
+| `/analyst-consensus/{symbol}` | GET | Analyst consensus rating |
+| `/analyst-targets/{symbol}` | GET | Price target estimates |
+| `/upgrades-downgrades/{symbol}` | GET | Analyst upgrades/downgrades |
+| `/earnings/{symbol}` | GET | Earnings history & estimates |
+| `/insider/{symbol}` | GET | Insider trading activity |
+| `/options/{symbol}/chain` | GET | Options chain (calls & puts) |
+| `/etf/{symbol}` | GET | ETF info, holdings, sector weights |
 
 ## Example Catalog
 
@@ -27,27 +57,25 @@ cd curl/ && bash quickstart.sh
 
 | Example | Description | Key Features |
 |---------|-------------|--------------|
-| [`quickstart.py`](python/quickstart.py) | Basic quote retrieval + AI analysis | Quotes, Batch, AI Streaming |
-| [`streaming.py`](python/streaming.py) | Streaming AI responses | AI Stream, Real-time output |
-| [`portfolio_analysis.py`](python/portfolio_analysis.py) | Risk metrics with finkit | Sharpe, Sortino, VaR, Screening |
-| [`async_example.py`](python/async_example.py) | Async client for concurrency | AsyncVecTrade, gather, Quota |
-| [`error_handling.py`](python/error_handling.py) | Production error patterns | All exception types, Retry |
-| [`langchain_agent.py`](python/langchain_agent.py) | LangChain multi-agent research | LangChain, Tools, Agent |
+| [`quickstart.py`](python/quickstart.py) | Complete SDK walkthrough — all 12 resources | Quotes, Profile, Fundamentals, Technicals, News, Sentiment, Analyst, Earnings, Insider, Options, Historical, ETF |
+| [`async_example.py`](python/async_example.py) | Async client for concurrent API calls | AsyncVecTrade, gather, parallel requests |
+| [`portfolio_analysis.py`](python/portfolio_analysis.py) | Multi-stock portfolio analysis | Technicals, Analyst, Insider, scoring |
+| [`error_handling.py`](python/error_handling.py) | Production error handling patterns | All exception types, retry, fallback |
 
 ### TypeScript
 
 | Example | Description | Key Features |
 |---------|-------------|--------------|
-| [`quickstart.ts`](typescript/quickstart.ts) | Basic usage with typed responses | Quotes, Batch, AI Stream |
-| [`streaming.ts`](typescript/streaming.ts) | Async generator streaming | AsyncGenerator, stdout |
-| [`error_handling.ts`](typescript/error_handling.ts) | Typed exception handling | All error classes, Health |
-| [`vercel-ai-chatbot/`](typescript/vercel-ai-chatbot/) | AI chatbot with VecTrade tools | Vercel AI SDK, Next.js |
+| [`quickstart.ts`](typescript/quickstart.ts) | Complete SDK walkthrough — all 12 resources | Quotes, Profile, Fundamentals, Technicals, News, Sentiment, Analyst, Earnings, Insider, Options, Historical, ETF |
+| [`streaming.ts`](typescript/streaming.ts) | Real-time market monitor | Batch quotes, big mover detection, deep dive |
+| [`error_handling.ts`](typescript/error_handling.ts) | Typed exception handling | All error classes, retry, recovery |
+| [`ai_provider.ts`](typescript/ai_provider.ts) | AI chatbot with VecTrade tools | Vercel AI SDK integration |
 
 ### cURL
 
 | Example | Description |
 |---------|-------------|
-| [`quickstart.sh`](curl/quickstart.sh) | Raw HTTP API calls |
+| [`quickstart.sh`](curl/quickstart.sh) | All API endpoints demonstrated with raw HTTP calls |
 
 ### Use Cases
 
@@ -65,19 +93,25 @@ cd curl/ && bash quickstart.sh
 
 ## Prerequisites
 
-- **Python** >= 3.9 with `pip`
-- **Node.js** >= 20 with `npm` (for TypeScript examples)
 - **VecTrade API key** — get one at [vectrade.io/vtrade/developer](https://vectrade.io/vtrade/developer)
-- **[finkit](https://github.com/VecTrade-io/finkit)** (optional, for `portfolio_analysis.py`)
+- **Python** >= 3.9 with `pip` (for Python examples)
+- **Node.js** >= 20 with `npm` (for TypeScript examples)
 
 ## Running Examples
+
+### cURL (simplest — no dependencies)
+
+```bash
+export VECTRADE_API_KEY=vq_your_key_here
+bash curl/quickstart.sh
+```
 
 ### Python
 
 ```bash
-cd python/
-pip install vectrade finkit  # finkit optional
-python quickstart.py
+pip install vectrade
+export VECTRADE_API_KEY=vq_your_key_here
+python python/quickstart.py
 ```
 
 ### TypeScript
@@ -85,47 +119,76 @@ python quickstart.py
 ```bash
 cd typescript/
 npm install @vectrade/sdk tsx
+export VECTRADE_API_KEY=vq_your_key_here
 npx tsx quickstart.ts
 ```
 
 ### Use Cases
 
-Each use case has its own README with specific setup instructions:
+Each use case has its own README:
 
 ```bash
 cd use-cases/momentum-scanner/
-cat README.md
-pip install vectrade finkit
+pip install vectrade
 python main.py
 ```
 
-### Templates
+## MCP Server (for AI Assistants)
 
-Templates are complete project starters — copy and customize:
+VecTrade also provides an MCP (Model Context Protocol) server that gives AI assistants like Claude, Cursor, and VS Code Copilot access to all financial data tools.
 
-```bash
-cp -r templates/nextjs-dashboard/ ~/my-dashboard
-cd ~/my-dashboard
-npm install
-cp .env.example .env.local  # add your API key
-npm run dev
+### Hosted (recommended)
+
+```json
+{
+  "mcpServers": {
+    "vectrade": {
+      "url": "https://mcp.vectrade.io/sse",
+      "headers": {
+        "X-API-Key": "vq_your_key_here"
+      }
+    }
+  }
+}
 ```
+
+### Local (stdio)
+
+```json
+{
+  "mcpServers": {
+    "vectrade": {
+      "command": "npx",
+      "args": ["-y", "@vectrade/mcp-server"],
+      "env": {
+        "VECTRADE_API_KEY": "vq_your_key_here"
+      }
+    }
+  }
+}
+```
+
+**Available MCP Tools:** `get_quote`, `get_batch_quotes`, `get_historical_prices`, `get_fundamentals`, `get_financial_statements`, `get_company_profile`, `get_earnings`, `get_technicals`, `get_news`, `get_sentiment`, `get_analyst_ratings`, `get_insider_trading`, `get_upgrades_downgrades`, `get_options_chain`
 
 ## VecTrade Ecosystem
 
 | Package | Description |
 |---------|-------------|
 | [`vectrade`](https://github.com/VecTrade-io/vectrade-python) | Python SDK |
-| [`@vectrade/sdk`](https://github.com/VecTrade-io/vectrade-node) | TypeScript SDK |
+| [`@vectrade/sdk`](https://github.com/VecTrade-io/vectrade-node) | TypeScript/Node.js SDK |
+| [`@vectrade/mcp-server`](https://github.com/VecTrade-io/vectrade-mcp) | MCP Server for AI assistants |
 | [`@vectrade/ai-provider`](https://github.com/VecTrade-io/vectrade-ai-provider) | Vercel AI SDK provider |
-| [`vectrade` CLI](https://github.com/VecTrade-io/vectrade-cli) | Command-line interface |
-| [`finkit`](https://github.com/VecTrade-io/finkit) | Financial computations (no API key needed) |
-| [`@vectrade/mcp`](https://github.com/VecTrade-io/vectrade-mcp) | Model Context Protocol server |
+| [Docs](https://docs.vectrade.io) | Full API documentation |
 
-## Contributing
+## Running Tests
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding new examples.
+```bash
+# Live integration tests (requires API key)
+export VECTRADE_API_KEY=vq_your_key_here
+pip install httpx pytest
+pytest tests/test_live.py -v
+```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE) — see [LICENSE](LICENSE) for details.

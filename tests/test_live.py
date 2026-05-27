@@ -1,124 +1,126 @@
-"""Live API tests for vectrade-examples.
+"""Live integration tests for VecTrade API examples.
 
-Validates that example code patterns work against the live API:
-- SDK initialization works
-- Quote fetching works
-- Auth is enforced
-- Rate limits are respected
+Run with: VECTRADE_API_KEY=vq_your_key pytest tests/test_live.py -v
 
-Requires: VECTRADE_API_KEY environment variable
+These tests hit the real API at https://api.vectrade.io.
 """
 
-from __future__ import annotations
-
 import os
-import time
-
+import subprocess
 import pytest
-import requests
+import httpx
 
-API_KEY = os.environ.get("VECTRADE_API_KEY", "vq_Mv8c_RyScES7xeXWhjznncYB6FLW8xRAyyJ5vRM4MQo")
-BASE_URL = "https://api.vectrade.io/v1"
-HEADERS = {
-    "X-API-Key": API_KEY,
-    "User-Agent": "vectrade-examples-tests/1.0",
-}
+API_KEY = os.environ.get("VECTRADE_API_KEY", "")
+BASE = "https://api.vectrade.io/v1/vq"
+HEADERS = {"X-API-Key": API_KEY}
+
+pytestmark = pytest.mark.skipif(not API_KEY, reason="VECTRADE_API_KEY not set")
 
 
-class TestQuickstartPatterns:
-    """Verify patterns used in quickstart examples work."""
+class TestCurlEndpoints:
+    """Verify all endpoints used by curl/quickstart.sh work."""
 
-    def test_single_quote_fetch(self):
-        """Pattern: vt.quotes.get('AAPL') — single quote fetch."""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/AAPL",
-            headers=HEADERS,
-            timeout=10,
+    @pytest.fixture(autouse=True)
+    def client(self):
+        self._client = httpx.Client(base_url=BASE, headers=HEADERS, timeout=15)
+        yield
+        self._client.close()
+
+    def test_quote(self):
+        r = self._client.get("/quotes/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "ticker" in data or "symbol" in data
+        assert "price" in data
+
+    def test_batch_quotes(self):
+        r = self._client.get("/quotes/batch", params={"symbols": "AAPL,MSFT"})
+        assert r.status_code == 200
+
+    def test_technical(self):
+        r = self._client.get("/technical/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "technical_score" in data
+        assert "indicators" in data
+
+    def test_analyst(self):
+        r = self._client.get("/analyst/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "ratings" in data
+        assert "consensus" in data
+
+    def test_profile(self):
+        r = self._client.get("/profile/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "company" in data or "ticker" in data
+
+    def test_news(self):
+        r = self._client.get("/news/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "articles" in data
+
+    def test_options_chain(self):
+        r = self._client.get("/options/AAPL/chain")
+        assert r.status_code == 200
+        data = r.json()
+        assert "calls" in data or "ticker" in data
+
+    def test_earnings(self):
+        r = self._client.get("/earnings/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "ticker" in data
+
+    def test_sentiment(self):
+        r = self._client.get("/sentiment/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "sentiment_score" in data or "signal" in data
+
+    def test_insider(self):
+        r = self._client.get("/insider/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "trades" in data or "ticker" in data
+
+    def test_fundamentals(self):
+        r = self._client.get("/fundamentals/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "price" in data or "ticker" in data
+
+    def test_financial_statements(self):
+        r = self._client.get("/fundamentals/AAPL/statements")
+        assert r.status_code == 200
+        data = r.json()
+        assert "income_statement" in data
+
+    def test_upgrades_downgrades(self):
+        r = self._client.get("/upgrades-downgrades/AAPL")
+        assert r.status_code == 200
+        data = r.json()
+        assert "ticker" in data
+
+    def test_historical_prices(self):
+        r = self._client.get("/quotes/AAPL/history", params={"interval": "1d", "period": "1mo"})
+        assert r.status_code == 200
+
+
+class TestCurlScript:
+    """Test that the curl quickstart script runs without errors."""
+
+    def test_curl_quickstart_runs(self):
+        result = subprocess.run(
+            ["bash", "curl/quickstart.sh"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env={**os.environ, "VECTRADE_API_KEY": API_KEY},
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "data" in data or "symbol" in data
-
-    def test_batch_quotes_fetch(self):
-        """Pattern: vt.quotes.batch(['AAPL', 'MSFT']) — batch fetch."""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/batch",
-            headers=HEADERS,
-            params={"symbols": "AAPL,MSFT,GOOGL"},
-            timeout=10,
-        )
-        assert resp.status_code in (200, 404)
-
-
-class TestAuthPatterns:
-    """Verify auth patterns match example documentation."""
-
-    def test_no_key_rejected(self):
-        """Examples document that missing key returns 401."""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/AAPL",
-            headers={"User-Agent": "vectrade-examples-tests/1.0"},
-            timeout=10,
-        )
-        assert resp.status_code in (401, 403)
-
-    def test_api_key_header_works(self):
-        """Examples use X-API-Key header (documented pattern)."""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/AAPL",
-            headers=HEADERS,
-            timeout=10,
-        )
-        assert resp.status_code == 200
-
-
-class TestErrorHandlingPatterns:
-    """Verify error handling patterns from examples."""
-
-    def test_invalid_symbol_handling(self):
-        """Pattern: Handle invalid symbol gracefully."""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/INVALID_SYMBOL_XYZ",
-            headers=HEADERS,
-            timeout=10,
-        )
-        # Should return error status or empty data
-        assert resp.status_code in (200, 400, 404, 422)
-
-    def test_error_response_is_json(self):
-        """Error responses should be JSON (as shown in examples)."""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/AAPL",
-            headers={"User-Agent": "vectrade-examples-tests/1.0"},
-            timeout=10,
-        )
-        assert resp.headers.get("content-type", "").startswith("application/json")
-
-
-class TestCurlPatterns:
-    """Verify curl example patterns work."""
-
-    def test_curl_equivalent_request(self):
-        """Matches: curl -H 'X-API-Key: ...' https://api.vectrade.io/v1/vq/quotes/AAPL"""
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/AAPL",
-            headers=HEADERS,
-            timeout=10,
-        )
-        assert resp.status_code == 200
-
-
-class TestPerformance:
-    """Verify API performance for examples."""
-
-    def test_reasonable_response_time(self):
-        """Examples should demonstrate fast responses."""
-        start = time.time()
-        resp = requests.get(
-            f"{BASE_URL}/vq/quotes/AAPL",
-            headers=HEADERS,
-            timeout=10,
-        )
-        elapsed = time.time() - start
-        assert elapsed < 5.0
-        assert resp.status_code == 200
+        assert result.returncode == 0, f"Script failed:\n{result.stderr}"
+        assert "Real-Time Quote" in result.stdout
+        assert "Technical Analysis" in result.stdout

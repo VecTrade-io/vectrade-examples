@@ -1,62 +1,64 @@
 """Momentum Scanner — screens for stocks with strong momentum signals.
 
-Demonstrates: screener, technical indicators via FinKit, batch quotes.
+Demonstrates: batch quotes, technical indicators, insider trading data.
 """
 
 import asyncio
 
 from vectrade import AsyncVecTrade
 
-# Using finkit for local calculations on returned data
-from finkit import rsi, ema, SignalEngine
-
 
 async def main() -> None:
     async with AsyncVecTrade() as client:
-        # Screen for high-volume stocks with recent price momentum
-        results = []
-        async for page in client.screener.run(
-            filters={
-                "market_cap_min": 10_000_000_000,  # $10B+
-                "avg_volume_min": 5_000_000,
-                "change_pct_min": 2.0,  # Up 2%+ today
-            },
-            sort_by="change_pct",
-            sort_order="desc",
-            page_size=20,
-        ):
-            results.extend(page)
+        # Scan a watchlist of popular stocks
+        watchlist = [
+            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
+            "META", "TSLA", "AMD", "NFLX", "CRM",
+        ]
 
-        if not results:
-            print("No stocks match momentum criteria today.")
-            return
+        # Get batch quotes
+        quotes = await client.quotes.batch(watchlist)
 
-        print(f"Found {len(results)} momentum candidates:\n")
-        print(f"{'Symbol':<8} {'Price':<10} {'Change':<10} {'Volume':<12} {'Mkt Cap'}")
+        # Filter for momentum (positive change)
+        movers = sorted(quotes, key=lambda q: q.change_pct, reverse=True)
+
+        print("Momentum Candidates (sorted by daily change):\n")
+        print(f"{'Symbol':<8} {'Price':<10} {'Change':<10} {'Volume'}")
+        print("-" * 45)
+        for q in movers:
+            print(f"{q.symbol:<8} ${q.price:<9.2f} {q.change_pct:+.2f}%{'':>3} {q.volume:,.0f}")
+
+        # Get detailed technicals for top 5 movers
+        top_symbols = [q.symbol for q in movers[:5]]
+        print(f"\n\nTechnical Analysis (Top 5 Movers):")
         print("-" * 55)
 
-        for stock in results[:10]:
-            vol_str = f"{stock.volume/1e6:.1f}M"
-            cap_str = f"${stock.market_cap/1e9:.0f}B" if stock.market_cap else "N/A"
-            print(
-                f"{stock.symbol:<8} "
-                f"${stock.price:<9.2f} "
-                f"+{stock.change_pct:.1f}%{'':>4} "
-                f"{vol_str:<12} "
-                f"{cap_str}"
-            )
+        tech_tasks = [client.technicals.get(symbol) for symbol in top_symbols]
+        tech_results = await asyncio.gather(*tech_tasks, return_exceptions=True)
 
-        # Get detailed technicals for top 5
-        print("\n\nTechnical Analysis (Top 5):")
-        print("-" * 55)
-        top_symbols = [r.symbol for r in results[:5]]
-
-        for symbol in top_symbols:
-            technicals = await client.technicals.get(symbol)
+        for symbol, tech in zip(top_symbols, tech_results):
+            if isinstance(tech, Exception):
+                print(f"\n  {symbol}: Technical data unavailable")
+                continue
             print(f"\n  {symbol}:")
-            print(f"    RSI(14): {technicals.rsi_14:.1f}")
-            print(f"    MACD:    {technicals.macd:.4f}")
-            print(f"    Signal:  {technicals.macd_signal:.4f}")
+            print(f"    RSI(14): {tech.rsi_14:.1f}" if hasattr(tech, "rsi_14") else f"    RSI: {tech}")
+            if hasattr(tech, "macd"):
+                print(f"    MACD: {tech.macd:.4f}")
+            if hasattr(tech, "signal"):
+                signal = "BULLISH" if tech.rsi_14 < 70 and tech.macd > 0 else "BEARISH"
+                print(f"    Signal: {signal}")
+
+        # Check insider activity for top movers
+        print(f"\n\nInsider Activity (Top 5):")
+        print("-" * 55)
+        insider_tasks = [client.insider.get(symbol) for symbol in top_symbols]
+        insider_results = await asyncio.gather(*insider_tasks, return_exceptions=True)
+
+        for symbol, insider in zip(top_symbols, insider_results):
+            if isinstance(insider, Exception):
+                print(f"  {symbol}: No insider data")
+                continue
+            print(f"  {symbol}: {insider}")
 
 
 if __name__ == "__main__":

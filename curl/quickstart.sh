@@ -1,29 +1,59 @@
 #!/bin/bash
 # VecTrade API — cURL Quick Start
-# Replace YOUR_API_KEY with your actual key
+# Get your API key at https://vectrade.io/vtrade/developer
+#
+# Usage: VECTRADE_API_KEY=vq_your_key ./quickstart.sh
 
-API_KEY="vq_test_YOUR_KEY_HERE"
-BASE="https://api.vectrade.io/v1"
+set -euo pipefail
 
-echo "=== Get Quote ==="
-curl -s "$BASE/vq/quotes/AAPL" \
-  -H "Authorization: Bearer $API_KEY" | python3 -m json.tool
+API_KEY="${VECTRADE_API_KEY:-vq_test_YOUR_KEY_HERE}"
+BASE="https://api.vectrade.io/v1/vq"
 
-echo ""
-echo "=== Batch Quotes ==="
-curl -s "$BASE/vq/quotes/batch?symbols=AAPL,GOOGL,MSFT" \
-  -H "Authorization: Bearer $API_KEY" | python3 -m json.tool
-
-echo ""
-echo "=== AI Analysis (non-streaming) ==="
-curl -s "$BASE/vq/ai/analyze" \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Analyze AAPL for long-term hold", "stream": false}' | python3 -m json.tool
+echo "=== Real-Time Quote (AAPL) ==="
+curl -s "$BASE/quotes/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
 
 echo ""
-echo "=== AI Analysis (streaming) ==="
-curl -N "$BASE/vq/ai/analyze" \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Brief outlook for NVDA", "stream": true}'
+echo "=== Batch Quotes (AAPL, GOOGL, MSFT) ==="
+curl -s "$BASE/quotes/batch?symbols=AAPL,GOOGL,MSFT" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Technical Analysis (AAPL) ==="
+curl -s "$BASE/technical/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Analyst Ratings (AAPL) ==="
+curl -s "$BASE/analyst/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Company Profile (AAPL) ==="
+curl -s "$BASE/profile/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== News (AAPL) ==="
+curl -s "$BASE/news/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Options Chain (AAPL) ==="
+curl -s "$BASE/options/AAPL/chain" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Earnings (AAPL) ==="
+curl -s "$BASE/earnings/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Sentiment (AAPL) ==="
+curl -s "$BASE/sentiment/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool
+
+echo ""
+echo "=== Insider Trading (AAPL) ==="
+curl -s "$BASE/insider/AAPL" \
+  -H "X-API-Key: $API_KEY" | python3 -m json.tool

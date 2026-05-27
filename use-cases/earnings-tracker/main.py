@@ -1,10 +1,9 @@
-"""Earnings Tracker — alerts you when portfolio companies report earnings.
+"""Earnings Tracker — checks earnings data for portfolio companies.
 
-Demonstrates: earnings calendar, webhooks, portfolio tracking.
+Demonstrates: earnings endpoint, batch quotes, async concurrent requests.
 """
 
 import asyncio
-from datetime import datetime, timedelta
 
 from vectrade import AsyncVecTrade
 
@@ -14,33 +13,36 @@ async def main() -> None:
         # Portfolio tickers to track
         portfolio = ["AAPL", "GOOGL", "MSFT", "NVDA", "AMZN"]
 
-        # Check earnings calendar for next 30 days
-        today = datetime.now().strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+        # Get batch quotes for portfolio
+        quotes = await client.quotes.batch(portfolio)
+        print(f"{'Symbol':<8} {'Price':<10} {'Change':<10} {'Volume'}")
+        print("-" * 45)
+        for q in quotes:
+            print(f"{q.symbol:<8} ${q.price:<9.2f} {q.change_pct:+.2f}%{'':>3} {q.volume:,.0f}")
 
-        calendar = await client.earnings.calendar(from_date=today, to_date=end_date)
-
-        # Filter for portfolio companies
-        upcoming = [e for e in calendar if e.symbol in portfolio]
-
-        if not upcoming:
-            print("No portfolio earnings in the next 30 days.")
-            return
-
-        print(f"{'Symbol':<8} {'Date':<12} {'Time':<15} {'EPS Est':<10} {'Rev Est'}")
+        # Check earnings data for each stock
+        print("\n\nEarnings Data:")
         print("-" * 60)
-        for entry in sorted(upcoming, key=lambda x: x.date):
-            eps_str = f"${entry.eps_estimate:.2f}" if entry.eps_estimate else "N/A"
-            rev_str = f"${entry.revenue_estimate/1e9:.1f}B" if entry.revenue_estimate else "N/A"
-            print(f"{entry.symbol:<8} {entry.date:<12} {entry.time:<15} {eps_str:<10} {rev_str}")
+        earnings_tasks = [client.earnings.get(symbol) for symbol in portfolio]
+        results = await asyncio.gather(*earnings_tasks, return_exceptions=True)
 
-        # Set up webhook for earnings alerts
-        print("\nSetting up webhook for earnings alerts...")
-        webhook = await client.webhooks.create(
-            url="https://your-server.com/webhooks/earnings",
-            events=["earnings.released"],
-        )
-        print(f"Webhook created: {webhook.id}")
+        for symbol, result in zip(portfolio, results):
+            if isinstance(result, Exception):
+                print(f"  {symbol}: No earnings data available")
+                continue
+            print(f"\n  {symbol}: {result}")
+
+        # Get analyst ratings for context
+        print("\n\nAnalyst Consensus:")
+        print("-" * 45)
+        analyst_tasks = [client.analyst.get(symbol) for symbol in portfolio]
+        analyst_results = await asyncio.gather(*analyst_tasks, return_exceptions=True)
+
+        for symbol, result in zip(portfolio, analyst_results):
+            if isinstance(result, Exception):
+                print(f"  {symbol}: No analyst data")
+                continue
+            print(f"  {symbol}: {result}")
 
 
 if __name__ == "__main__":

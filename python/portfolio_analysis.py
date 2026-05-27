@@ -1,71 +1,80 @@
-"""Portfolio Analysis with finkit — No VecTrade account required."""
+"""VecTrade Python SDK — Portfolio Analysis Example.
 
-import pandas as pd
-import numpy as np
+Demonstrates building a portfolio dashboard with:
+- Batch quotes for current positions
+- Technical scoring for each holding
+- Insider activity monitoring
+- Analyst consensus overview
 
-# finkit works standalone — no API key needed
-import finkit
-from finkit import Rule, screen
+Prerequisites:
+    pip install vectrade
+    export VECTRADE_API_KEY=vq_your_key_here
+"""
+
+import asyncio
+from vectrade import AsyncVecTrade
 
 
-def main():
-    # Simulate portfolio returns (in production, use vectrade SDK to fetch real data)
-    np.random.seed(42)
-    dates = pd.date_range("2024-01-01", periods=252, freq="B")
-    portfolio_returns = pd.Series(np.random.normal(0.0005, 0.015, 252), index=dates)
-    equity_curve = (1 + portfolio_returns).cumprod()
+async def main():
+    portfolio = {
+        "AAPL": 50,   # 50 shares
+        "MSFT": 30,
+        "GOOGL": 20,
+        "NVDA": 40,
+        "AMZN": 25,
+    }
+    symbols = list(portfolio.keys())
 
-    print("=== Portfolio Risk Metrics ===\n")
+    async with AsyncVecTrade() as client:
+        # 1. Portfolio value from batch quotes
+        print("=== Portfolio Overview ===")
+        quotes = await client.quotes.batch(symbols)
+        total_value = 0
+        print(f"{'Symbol':<8} {'Shares':<8} {'Price':<10} {'Value':<12} {'Change'}")
+        print("-" * 55)
+        for q in quotes:
+            if q.symbol in portfolio:
+                shares = portfolio[q.symbol]
+                value = shares * q.price
+                total_value += value
+                print(f"{q.symbol:<8} {shares:<8} ${q.price:<9.2f} ${value:<11,.0f} {q.change_pct:+.2f}%")
+        print(f"\n  Total Portfolio Value: ${total_value:,.0f}")
 
-    sharpe = finkit.sharpe_ratio(portfolio_returns)
-    sortino = finkit.sortino_ratio(portfolio_returns)
-    mdd = finkit.max_drawdown(equity_curve)
-    value_at_risk = finkit.var(portfolio_returns, confidence=0.95)
+        # 2. Technical health check
+        print("\n=== Technical Health ===")
+        techs = await asyncio.gather(
+            *[client.technicals.get(sym) for sym in symbols]
+        )
+        print(f"{'Symbol':<8} {'Score':<8} {'RSI':<8} {'Signal':<12} {'Trend'}")
+        print("-" * 50)
+        for tech in techs:
+            rsi = tech.indicators["rsi"]["value"]
+            signal = tech.indicators["rsi"]["signal"]
+            trend = tech.summary["trend"]
+            print(f"{tech.symbol:<8} {tech.technical_score:<8} {rsi:<8.1f} {signal:<12} {trend}")
 
-    print(f"  Sharpe Ratio:      {sharpe:.3f}")
-    print(f"  Sortino Ratio:     {sortino:.3f}")
-    print(f"  Max Drawdown:      {mdd:.2%}")
-    print(f"  VaR (95%):         {value_at_risk:.4f}")
+        # 3. Analyst consensus
+        print("\n=== Analyst Ratings ===")
+        analysts = await asyncio.gather(
+            *[client.analyst.consensus(sym) for sym in symbols]
+        )
+        print(f"{'Symbol':<8} {'Rating':<10} {'Signal':<10} {'Score'}")
+        print("-" * 40)
+        for a in analysts:
+            print(f"{a.symbol:<8} {a.consensus:<10} {a.signal:<10} {a.consensus_score}")
 
-    # Technical analysis on a stock
-    print("\n=== Technical Indicators (simulated AAPL) ===\n")
-
-    prices = pd.Series(
-        150 + np.cumsum(np.random.normal(0.1, 2, 100)),
-        index=pd.date_range("2024-06-01", periods=100, freq="B"),
-    )
-
-    rsi_values = finkit.rsi(prices, period=14)
-    sma_20 = finkit.sma(prices, period=20)
-    upper, middle, lower = finkit.bollinger_bands(prices)
-
-    print(f"  Current Price:     ${prices.iloc[-1]:.2f}")
-    print(f"  RSI (14):          {rsi_values.iloc[-1]:.1f}")
-    print(f"  SMA (20):          ${sma_20.iloc[-1]:.2f}")
-    print(f"  Bollinger Upper:   ${upper.iloc[-1]:.2f}")
-    print(f"  Bollinger Lower:   ${lower.iloc[-1]:.2f}")
-
-    # Screening
-    print("\n=== Stock Screener ===\n")
-
-    universe = pd.DataFrame({
-        "symbol": ["AAPL", "GOOGL", "MSFT", "AMZN", "META", "NVDA", "TSLA", "BRK.B"],
-        "pe_ratio": [28, 22, 35, 45, 18, 60, 55, 15],
-        "market_cap": [3e12, 2e12, 3.1e12, 1.9e12, 1.3e12, 3.5e12, 0.8e12, 0.9e12],
-        "dividend_yield": [0.5, 0.0, 0.7, 0.0, 0.3, 0.0, 0.0, 0.0],
-        "rsi_14": [55, 42, 68, 38, 45, 72, 30, 50],
-    })
-
-    results = screen(universe, rules=[
-        Rule("pe_ratio", "<", 40),
-        Rule("market_cap", ">", 1e12),
-        Rule("rsi_14", "between", (30, 65)),
-    ])
-
-    print(f"  Matches: {len(results)} of {len(universe)} stocks")
-    for _, row in results.iterrows():
-        print(f"    {row['symbol']:6s} | PE: {row['pe_ratio']:5.1f} | RSI: {row['rsi_14']:.0f}")
+        # 4. Insider activity (check for unusual activity)
+        print("\n=== Recent Insider Activity ===")
+        insiders = await asyncio.gather(
+            *[client.insider.transactions(sym, limit=3) for sym in symbols],
+            return_exceptions=True
+        )
+        for sym, trades in zip(symbols, insiders):
+            if isinstance(trades, Exception) or not trades:
+                continue
+            for t in trades[:2]:
+                print(f"  {sym} | {t.insider_name} ({t.position}) | {t.transaction_type} | {t.shares:,} shares")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
