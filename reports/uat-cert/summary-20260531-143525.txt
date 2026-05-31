@@ -1,0 +1,17 @@
+certification_timestamp=20260531-143525
+runs=3
+uat_host=145.241.243.140
+uat_base=https://uat.vectrade.io/api/trade/v1/bot
+deployed_sha=4b1fcb8
+service_status=active
+service_status=active
+service_status=active
+service_status=active
+bot_key_prefix=tvt_NowN
+bot_user_id=3e5c9fcb-348c-42f7-b06e-10023b4ec32f
+run_1_exit_code=0
+run_1_xml=reports/uat-cert/uat-bot-e2e-20260531-143525-run1.xml
+run_2_exit_code=1
+run_2_xml=reports/uat-cert/uat-bot-e2e-20260531-143525-run2.xml
+overall_result=FAILED
+failed_run=2

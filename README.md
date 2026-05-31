@@ -60,6 +60,8 @@ Auth Header: X-API-Key: vq_your_key_here
 | [`quickstart.py`](python/quickstart.py) | Complete SDK walkthrough — all 12 resources | Quotes, Profile, Fundamentals, Technicals, News, Sentiment, Analyst, Earnings, Insider, Options, Historical, ETF |
 | [`async_example.py`](python/async_example.py) | Async client for concurrent API calls | AsyncVecTrade, gather, parallel requests |
 | [`portfolio_analysis.py`](python/portfolio_analysis.py) | Multi-stock portfolio analysis | Technicals, Analyst, Insider, scoring |
+| [`bot_trading.py`](python/bot_trading.py) | Bot API client — place orders, check portfolio | X-Bot-Key auth, order lifecycle |
+| [`mcp_client.py`](python/mcp_client.py) | MCP server client — call tools programmatically | MCP protocol, tool discovery |
 | [`error_handling.py`](python/error_handling.py) | Production error handling patterns | All exception types, retry, fallback |
 
 ### TypeScript
@@ -81,6 +83,7 @@ Auth Header: X-API-Key: vq_your_key_here
 
 | Use Case | Description | Complexity |
 |----------|-------------|------------|
+| [`ai-agent-trading/`](use-cases/ai-agent-trading/) | AI agent + MCP trading, cron strategy, direct API | Intermediate–Advanced |
 | [`earnings-tracker/`](use-cases/earnings-tracker/) | Monitor portfolio earnings calendar | Intermediate |
 | [`momentum-scanner/`](use-cases/momentum-scanner/) | Screen high-momentum stocks with technicals | Advanced |
 
@@ -168,7 +171,32 @@ VecTrade also provides an MCP (Model Context Protocol) server that gives AI assi
 }
 ```
 
-**Available MCP Tools:** `get_quote`, `get_batch_quotes`, `get_historical_prices`, `get_fundamentals`, `get_financial_statements`, `get_company_profile`, `get_earnings`, `get_technicals`, `get_news`, `get_sentiment`, `get_analyst_ratings`, `get_insider_trading`, `get_upgrades_downgrades`, `get_options_chain`
+**Available MCP Tools:** `get_quote`, `get_batch_quotes`, `get_historical_prices`, `get_fundamentals`, `get_financial_statements`, `get_company_profile`, `get_earnings`, `get_technicals`, `get_news`, `get_sentiment`, `get_analyst_ratings`, `get_insider_trading`, `get_upgrades_downgrades`, `get_options_chain`, `get_etf`, `place_order`, `cancel_order`, `get_orders`, `get_portfolio`, `get_trading_kpi`, `get_bot_account`
+
+<details>
+<summary>Bot Trading via MCP (requires Bot API key)</summary>
+
+Add `VECTRADE_BOT_KEY` to enable trading tools:
+
+```json
+{
+  "mcpServers": {
+    "vectrade": {
+      "command": "npx",
+      "args": ["-y", "@vectrade/mcp-server"],
+      "env": {
+        "VECTRADE_API_KEY": "vq_your_key_here",
+        "VECTRADE_BOT_KEY": "tvt_your_bot_key"
+      }
+    }
+  }
+}
+```
+
+Trading tools: `place_order`, `cancel_order`, `get_orders`, `get_portfolio`, `get_trading_kpi`, `get_bot_account`
+
+See [`use-cases/ai-agent-trading/`](use-cases/ai-agent-trading/) for full examples.
+</details>
 
 ## VecTrade Ecosystem
 
