@@ -21,15 +21,15 @@ async function main() {
 
   // ─── 1. Real-Time Quote ───────────────────────────────────────
   console.log("=== Real-Time Quote ===");
-  const quote = (await client.quotes.get("AAPL")) as any;
-  console.log(`  ${quote.ticker}: $${quote.price.toFixed(2)} (${quote.change_percent >= 0 ? "+" : ""}${quote.change_percent.toFixed(2)}%)`);
+  const quote = await client.quotes.get("AAPL");
+  console.log(`  ${quote.symbol}: $${quote.price.toFixed(2)} (${quote.changePct >= 0 ? "+" : ""}${quote.changePct.toFixed(2)}%)`);
   console.log(`  Volume: ${quote.volume?.toLocaleString()}`);
 
   // ─── 2. Batch Quotes ─────────────────────────────────────────
   console.log("\n=== Batch Quotes ===");
-  const quotes = (await client.quotes.batch(["MSFT", "GOOGL", "NVDA", "META", "AMZN"])) as any[];
+  const quotes = await client.quotes.batch(["MSFT", "GOOGL", "NVDA", "META", "AMZN"]);
   for (const q of quotes) {
-    console.log(`  ${q.ticker}: $${q.price.toFixed(2)} (${q.change_percent >= 0 ? "+" : ""}${q.change_percent.toFixed(2)}%)`);
+    console.log(`  ${q.symbol}: $${q.price.toFixed(2)} (${q.changePct >= 0 ? "+" : ""}${q.changePct.toFixed(2)}%)`);
   }
 
   // ─── 3. Company Profile ──────────────────────────────────────
@@ -41,27 +41,28 @@ async function main() {
 
   // ─── 4. Fundamentals ─────────────────────────────────────────
   console.log("\n=== Fundamentals ===");
-  const fund = (await client.fundamentals.get("AAPL")) as any;
-  console.log(`  Market Cap: $${(fund.market_cap / 1e12).toFixed(2)}T`);
-  console.log(`  SMA50: $${fund.sma50?.toFixed(2)} | SMA200: $${fund.sma200?.toFixed(2)}`);
+  const fund = await client.fundamentals.get("AAPL");
+  console.log(`  Market Cap: $${((fund.marketCap ?? 0) / 1e12).toFixed(2)}T`);
+  console.log(`  P/E: ${fund.peRatio?.toFixed(2) ?? "N/A"} | Beta: ${fund.beta?.toFixed(2) ?? "N/A"}`);
 
   // ─── 5. Financial Statements ──────────────────────────────────
   console.log("\n=== Financial Statements ===");
-  const stmts = (await client.fundamentals.statements("AAPL")) as any;
-  console.log(`  Available: ${Object.keys(stmts).filter(k => k !== "ticker").join(", ")}`);
+  const stmts = await client.fundamentals.statements("AAPL");
+  console.log(`  Available: ${Object.keys(stmts).filter((key) => key !== "ticker").join(", ")}`);
 
   // ─── 6. Technical Analysis ────────────────────────────────────
   console.log("\n=== Technical Analysis ===");
-  const tech = (await client.technicals.get("AAPL")) as any;
-  console.log(`  Technical Score: ${tech.technical_score}/100`);
-  console.log(`  RSI: ${tech.indicators?.rsi?.value?.toFixed(1)} (${tech.indicators?.rsi?.signal})`);
-  console.log(`  Trend: ${tech.summary?.trend}`);
+  const tech = await client.technicals.get("AAPL");
+  const rsi = Object.entries(tech.indicators).find(([name]) => name.toLowerCase() === "rsi")?.[1]?.at(-1)?.value;
+  console.log(`  Indicators: ${Object.keys(tech.indicators).join(", ")}`);
+  console.log(`  RSI: ${rsi?.toFixed(1) ?? "N/A"}`);
+  console.log(`  Candles loaded: ${tech.candles.length}`);
 
   // ─── 7. News ─────────────────────────────────────────────────
   console.log("\n=== Latest News ===");
   const articles = await client.news.list("AAPL");
-  for (const a of (articles as any[]).slice(0, 3)) {
-    console.log(`  • ${(a.headline || a.title)?.slice(0, 70)}`);
+  for (const article of articles.slice(0, 3)) {
+    console.log(`  • ${article.title.slice(0, 70)}`);
   }
 
   // ─── 8. Sentiment Analysis ────────────────────────────────────
@@ -73,41 +74,44 @@ async function main() {
 
   // ─── 9. Analyst Consensus ────────────────────────────────────
   console.log("\n=== Analyst Consensus ===");
-  const analyst = (await client.analyst.consensus("AAPL")) as any;
-  console.log(`  Rating: ${analyst.consensus} (Signal: ${analyst.signal})`);
+  const analyst = await client.analyst.consensus("AAPL");
+  console.log(`  Rating: ${analyst.consensus} | Analysts: ${analyst.totalAnalysts}`);
+  console.log(`  Mean target: $${analyst.targetMean.toFixed(2)}`);
 
   // ─── 10. Price Targets ────────────────────────────────────────
   console.log("\n=== Price Targets ===");
-  const targets = (await client.analyst.priceTargets("AAPL")) as any;
-  console.log(`  High: $${targets.high} | Mean: $${targets.mean?.toFixed(0)} | Low: $${targets.low}`);
+  const targets = await client.analyst.priceTargets("AAPL");
+  for (const target of targets.slice(0, 3)) {
+    console.log(`  ${target.firm}: ${target.rating} at $${target.target.toFixed(2)}`);
+  }
 
   // ─── 11. Upgrades/Downgrades ──────────────────────────────────
   console.log("\n=== Recent Upgrades/Downgrades ===");
-  const ratings = (await client.analyst.ratings("AAPL")) as any[];
+  const ratings = await client.analyst.ratings("AAPL");
   for (const r of ratings.slice(0, 3)) {
-    console.log(`  ${r.date?.slice(0, 10)}: ${r.firm} → ${r.to_grade} (${r.action})`);
+    console.log(`  ${r.publishedAt.slice(0, 10)}: ${r.firm} → ${r.toRating} (${r.action})`);
   }
 
   // ─── 12. Earnings ────────────────────────────────────────────
   console.log("\n=== Earnings History ===");
-  const earnings = (await client.earnings.history("AAPL")) as any[];
+  const earnings = await client.earnings.history("AAPL");
   for (const e of earnings.slice(0, 4)) {
-    const surprise = e.eps_surprise_pct != null ? ` (surprise: ${e.eps_surprise_pct > 0 ? "+" : ""}${e.eps_surprise_pct.toFixed(1)}%)` : "";
-    console.log(`  ${e.date}: EPS $${e.eps_actual?.toFixed(2)} vs est $${e.eps_estimate?.toFixed(2)}${surprise}`);
+    const surprise = e.epsSurprisePct != null ? ` (surprise: ${e.epsSurprisePct > 0 ? "+" : ""}${e.epsSurprisePct.toFixed(1)}%)` : "";
+    console.log(`  ${e.date}: EPS $${e.epsActual?.toFixed(2)} vs est $${e.epsEstimate?.toFixed(2)}${surprise}`);
   }
 
   // ─── 13. Insider Transactions ─────────────────────────────────
   console.log("\n=== Insider Activity ===");
-  const trades = (await client.insider.transactions("AAPL")) as any[];
+  const trades = await client.insider.transactions("AAPL");
   for (const t of trades.slice(0, 3)) {
-    console.log(`  ${t.transaction_date?.slice(0, 10)}: ${t.insider} — ${t.transaction_type} ${t.shares?.toLocaleString()} shares ($${t.value?.toLocaleString()})`);
+    console.log(`  ${t.filedAt.slice(0, 10)}: ${t.insiderName} — ${t.transactionType} ${t.shares.toLocaleString()} shares ($${t.totalValue.toLocaleString()})`);
   }
 
   // ─── 14. Options Chain ────────────────────────────────────────
   console.log("\n=== Options Chain ===");
-  const chain = (await client.options.chain("AAPL")) as any;
-  console.log(`  Expiration: ${chain.expiration}`);
-  console.log(`  Calls: ${chain.calls?.length} | Puts: ${chain.puts?.length}`);
+  const chain = await client.options.chain("AAPL");
+  console.log(`  Expiration: ${chain.expirations[0] ?? "N/A"}`);
+  console.log(`  Calls: ${chain.chain.filter((contract) => contract.type === "call").length} | Puts: ${chain.chain.filter((contract) => contract.type === "put").length}`);
 
   // ─── 15. Historical Prices ────────────────────────────────────
   console.log("\n=== Historical Prices (5 day) ===");

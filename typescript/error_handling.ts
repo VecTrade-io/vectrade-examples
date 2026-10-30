@@ -84,7 +84,8 @@ async function retryWithBackoff() {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const tech = await client.technicals.get("TSLA");
-      console.log(`  TSLA Technical Score: ${tech.technical_score}`);
+      const rsi = tech.indicators.rsi_14?.[0]?.value;
+      console.log(`  TSLA RSI(14): ${rsi?.toFixed(1) ?? "unavailable"}`);
       return;
     } catch (err) {
       if (err instanceof RateLimitError) {

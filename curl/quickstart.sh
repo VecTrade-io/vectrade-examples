@@ -15,7 +15,7 @@ curl -s "$BASE/quotes/AAPL" \
 
 echo ""
 echo "=== Batch Quotes (AAPL, GOOGL, MSFT) ==="
-curl -s "$BASE/quotes/batch?symbols=AAPL,GOOGL,MSFT" \
+curl -s "$BASE/quotes/batch?tickers=AAPL,GOOGL,MSFT" \
   -H "X-API-Key: $API_KEY" | python3 -m json.tool
 
 echo ""

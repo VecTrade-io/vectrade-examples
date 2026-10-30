@@ -34,7 +34,7 @@ class TestCurlEndpoints:
         assert "price" in data
 
     def test_batch_quotes(self):
-        r = self._client.get("/quotes/batch", params={"symbols": "AAPL,MSFT"})
+        r = self._client.get("/quotes/batch", params={"tickers": "AAPL,MSFT"})
         assert r.status_code == 200
 
     def test_technical(self):

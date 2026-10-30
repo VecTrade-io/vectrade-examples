@@ -20,4 +20,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Example validation** — add TypeScript-aware ESLint parsing and use a supported TypeScript deprecation setting.
+- **Typed SDK examples** — use current response field names, remove unsafe `any` casts, and declare the package as ESM for its ESLint config.
 - Improved README structure with badges, table of contents, and example matrix

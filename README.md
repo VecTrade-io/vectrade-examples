@@ -35,7 +35,7 @@ Auth Header: X-API-Key: vq_your_key_here
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/quotes/{symbol}` | GET | Real-time stock quote |
-| `/quotes/batch?symbols=A,B,C` | GET | Multiple quotes (up to 50) |
+| `/quotes/batch?tickers=A,B,C` | GET | Multiple quotes (up to 20) |
 | `/quotes/{symbol}/history?period=5d` | GET | Historical OHLCV data |
 | `/technical/{symbol}` | GET | Technical indicators (RSI, MACD, Bollinger, S/R) |
 | `/fundamentals/{symbol}` | GET | Company fundamentals (market cap, SMAs) |
