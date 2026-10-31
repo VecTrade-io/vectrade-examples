@@ -96,9 +96,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest requests
+        run: pip install pytest httpx
 
       - name: Run live tests
         env:
           VECTRADE_API_KEY: ${{ secrets.VECTRADE_API_KEY }}
-        run: python -m pytest tests/test_live.py -v --tb=short
+        run: |
+          if [ -z "$VECTRADE_API_KEY" ]; then
+            echo "::warning::VECTRADE_API_KEY secret is not set; live tests will be skipped"
+          fi
+          python -m pytest tests/test_live.py -v --tb=short
